@@ -1,130 +1,209 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, scrolledtext
 
-class Assembler:
-    def __init__(self):
-        self.optab = {}
-        self.symtab = {}
-        self.intermediate_file = []
-        self.machine_code = []
+# Global variables
+optab = {}
+input_content = ""
+symtab = {}
+intermediate_file_content = ""
 
-    def load_optab(self, optab_file):
-        with open(optab_file, 'r') as f:
+# Function to load OPTAB from file
+def load_optab():
+    global optab
+    file_path = filedialog.askopenfilename(title="Select OPTAB file", filetypes=[("Text files", "*.txt")])
+    if file_path:
+        with open(file_path, 'r') as f:
+            optab.clear()
             for line in f:
-                mnemonic, opcode = line.strip().split()
-                self.optab[mnemonic] = opcode
+                opcode, machine_code = line.strip().split()
+                optab[opcode] = machine_code
+        optab_display.delete(1.0, tk.END)
+        optab_display.insert(tk.END, f"Loaded OPTAB:\n{optab}")
+        messagebox.showinfo("Success", "OPTAB loaded successfully!")
 
-    def pass1(self, input_file):
-        locctr = 0
-        with open(input_file, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith(';'):  # Ignore empty lines and comments
-                    continue
-                
-                label, mnemonic, operand = self.parse_line(line)
-                
-                if label:
-                    self.symtab[label] = locctr
-                
-                if mnemonic in self.optab:
-                    self.intermediate_file.append(f"{locctr:04X} {line}")
-                    locctr += 1  # Increment for every instruction
-                
-                elif mnemonic == 'WORD':
-                    self.intermediate_file.append(f"{locctr:04X} {line}")
-                    locctr += 3  # WORD occupies 3 bytes
-                
-                elif mnemonic == 'RESW':
-                    self.intermediate_file.append(f"{locctr:04X} {line}")
-                    locctr += int(operand) * 3  # Reserve words (3 bytes each)
-                
-                elif mnemonic == 'RESB':
-                    self.intermediate_file.append(f"{locctr:04X} {line}")
-                    locctr += int(operand)  # Reserve bytes
-                
-                elif mnemonic == 'BYTE':
-                    self.intermediate_file.append(f"{locctr:04X} {line}")
-                    locctr += len(operand) - 3  # BYTE allocation depends on operand size
+# Function to load input assembly file
+def load_input_file():
+    global input_content
+    file_path = filedialog.askopenfilename(title="Select Input File", filetypes=[("Text files", "*.txt")])
+    if file_path:
+        with open(file_path, 'r') as f:
+            input_content = f.read()
+        input_file_display.delete(1.0, tk.END)
+        input_file_display.insert(tk.END, input_content)
+        messagebox.showinfo("Success", "Input file loaded successfully!")
+
+# Function to perform Pass 1
+def pass_one():
+    global intermediate_file_content, symtab
+    if not optab or not input_content:
+        messagebox.showerror("Error", "Please load the input file and OPTAB first.")
+        return
     
-    def pass2(self):
-        for line in self.intermediate_file:
-            locctr, instr = line.split(maxsplit=1)
-            label, mnemonic, operand = self.parse_line(instr)
-            if mnemonic in self.optab:
-                opcode = self.optab[mnemonic]
-                address = self.symtab.get(operand, '0000')  # Default 0000 if operand not found
-                self.machine_code.append(f"{opcode}{address}")
-    
-    def parse_line(self, line):
+    lines = input_content.strip().splitlines()
+    locctr = 0
+    intermediate_file_content = ""
+    symtab = {}
+
+    output_content = []
+    starting_address = 0
+
+    for line in lines:
         parts = line.split()
         if len(parts) == 3:
-            return parts[0], parts[1], parts[2]
-        elif len(parts) == 2:
-            return None, parts[0], parts[1]
-        elif len(parts) == 1:
-            return None, parts[0], None
-        return None, None, None
-
-
-class AssemblerGUI:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Two-Pass Assembler")
-
-        self.assembler = Assembler()
-
-        self.optab_label = tk.Label(root, text="Load OPTAB file:")
-        self.optab_label.pack()
-
-        self.optab_button = tk.Button(root, text="Browse", command=self.load_optab)
-        self.optab_button.pack()
-
-        self.input_label = tk.Label(root, text="Load Assembly Input file:")
-        self.input_label.pack()
-
-        self.input_button = tk.Button(root, text="Browse", command=self.load_input)
-        self.input_button.pack()
-
-        self.assemble_button = tk.Button(root, text="Assemble", command=self.assemble)
-        self.assemble_button.pack()
-
-        self.result_label = tk.Label(root, text="Results:")
-        self.result_label.pack()
-
-        self.result_text = tk.Text(root, height=10, width=50)
-        self.result_text.pack()
-
-    def load_optab(self):
-        optab_file = filedialog.askopenfilename(title="Select OPTAB file", filetypes=[("Text Files", "*.txt")])
-        if optab_file:
-            self.assembler.load_optab(optab_file)
-            messagebox.showinfo("Success", "OPTAB loaded successfully!")
-
-    def load_input(self):
-        self.input_file = filedialog.askopenfilename(title="Select Assembly Input file", filetypes=[("Text Files", "*.txt")])
-        if self.input_file:
-            messagebox.showinfo("Success", "Input file loaded successfully!")
-
-    def assemble(self):
-        if hasattr(self, 'input_file'):
-            self.assembler.pass1(self.input_file)
-            self.assembler.pass2()
-
-            # Show intermediate file and machine code
-            self.result_text.delete(1.0, tk.END)
-            self.result_text.insert(tk.END, "Intermediate File:\n")
-            self.result_text.insert(tk.END, "\n".join(self.assembler.intermediate_file) + "\n\n")
-
-            self.result_text.insert(tk.END, "Machine Code:\n")
-            self.result_text.insert(tk.END, "\n".join(self.assembler.machine_code))
-
-            messagebox.showinfo("Success", "Assembly completed!")
+            label, opcode, operand = parts
         else:
-            messagebox.showerror("Error", "Please load an input file first!")
+            label = ""
+            opcode, operand = parts
+        
+        # Process START directive
+        if opcode == "START":
+            locctr = int(operand, 16)
+            starting_address = locctr
+            output_content.append(f"{locctr:04X} {label} {opcode} {operand}")
+            continue
 
+        # Add to SYMTAB if label exists
+        if label:
+            if label in symtab:
+                messagebox.showerror("Error", f"Duplicate symbol {label} found.")
+                return
+            symtab[label] = f"{locctr:04X}"
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    gui = AssemblerGUI(root)
-    root.mainloop()
+        # Handle different directives and opcodes
+        if opcode in optab:
+            locctr += 3
+        elif opcode == "WORD":
+            locctr += 3
+        elif opcode == "RESW":
+            locctr += 3 * int(operand)
+        elif opcode == "RESB":
+            locctr += int(operand)
+        elif opcode == "BYTE":
+            if operand.startswith("C'"):
+                locctr += len(operand) - 3
+            elif operand.startswith("X'"):
+                locctr += (len(operand) - 3) // 2
+        elif opcode == "END":
+            output_content.append(f"{locctr:04X} {label} {opcode} {operand}")
+            break
+        else:
+            messagebox.showerror("Error", f"Invalid opcode {opcode} on line {line}.")
+            return
+        
+        # Append line to intermediate content
+        output_content.append(f"{locctr:04X} {label} {opcode} {operand}")
+    
+    # Store intermediate content and display it
+    intermediate_file_content = "\n".join(output_content)
+    intermediate_file_display.delete(1.0, tk.END)
+    intermediate_file_display.insert(tk.END, intermediate_file_content)
+
+    # Display SYMTAB
+    symtab_display.delete(1.0, tk.END)
+    symtab_display.insert(tk.END, f"Generated SYMTAB:\n{symtab}")
+    
+    messagebox.showinfo("Success", "Pass 1 completed. Intermediate file and SYMTAB generated.")
+
+# Function to perform Pass 2
+def pass_two():
+    if not intermediate_file_content or not symtab or not optab:
+        messagebox.showerror("Error", "Please run Pass 1 to generate the intermediate file and SYMTAB.")
+        return
+
+    output_content = ""
+    lines = intermediate_file_content.strip().splitlines()[1:]  # Skip START line
+    starting_address = None
+    program_length = 0
+    object_code = []
+    object_count = 0
+
+    # Process the intermediate file line by line
+    for line in lines:
+        locctr, label, opcode, operand = line.split()
+
+        if opcode == "START":
+            starting_address = int(operand, 16)
+            continue
+        elif opcode == "END":
+            break
+
+        # Generate object code
+        if opcode in optab:
+            machine_code = optab[opcode]
+            address = symtab.get(operand, "0000")
+            object_code.append(f"{machine_code}{address}")
+            object_count += 1
+        elif opcode == "WORD":
+            object_code.append(f"{int(operand):06X}")
+        elif opcode == "BYTE":
+            if operand.startswith("C'"):
+                value = ''.join(f"{ord(c):02X}" for c in operand[2:-1])
+                object_code.append(value)
+            elif operand.startswith("X'"):
+                object_code.append(operand[2:-1])
+
+    program_length = int(locctr, 16) - starting_address
+
+    # Generate header record
+    header_record = f"H {label} {starting_address:06X} {program_length:06X}"
+    output_content += f"{header_record}\n"
+
+    # Generate text record
+    text_record = f"T {starting_address:06X} {len(object_code) * 3:02X} " + ' '.join(object_code)
+    output_content += f"{text_record}\n"
+
+    # Generate end record
+    end_record = f"E {starting_address:06X}"
+    output_content += f"{end_record}\n"
+
+    # Display output in GUI
+    output_display.delete(1.0, tk.END)
+    output_display.insert(tk.END, output_content)
+
+    # Save to output.txt
+    with open("output.txt", "w") as f:
+        f.write(output_content)
+
+    messagebox.showinfo("Success", "Pass 2 completed. Output file generated.")
+
+# Initialize Tkinter GUI
+root = tk.Tk()
+root.title("Two-Pass Assembler")
+
+# Load OPTAB Button
+load_optab_btn = tk.Button(root, text="Load OPTAB", command=load_optab)
+load_optab_btn.grid(row=0, column=0, padx=10, pady=10)
+
+# Load Input File Button
+load_input_btn = tk.Button(root, text="Load Input File", command=load_input_file)
+load_input_btn.grid(row=0, column=1, padx=10, pady=10)
+
+# Run Pass 1 Button
+pass_one_btn = tk.Button(root, text="Run Pass 1", command=pass_one)
+pass_one_btn.grid(row=0, column=2, padx=10, pady=10)
+
+# Run Pass 2 Button
+pass_two_btn = tk.Button(root, text="Run Pass 2", command=pass_two)
+pass_two_btn.grid(row=0, column=3, padx=10, pady=10)
+
+# Display for optab
+optab_display = scrolledtext.ScrolledText(root, height=10, width=40)
+optab_display.grid(row=1, column=0, padx=10, pady=10)
+
+# Display for input file
+input_file_display = scrolledtext.ScrolledText(root, height=10, width=40)
+input_file_display.grid(row=1, column=1, padx=10, pady=10)
+
+# Display for intermediate file
+intermediate_file_display = scrolledtext.ScrolledText(root, height=10, width=40)
+intermediate_file_display.grid(row=1, column=2, padx=10, pady=10)
+
+# Display for SYMTAB
+symtab_display = scrolledtext.ScrolledText(root, height=10, width=40)
+symtab_display.grid(row=1, column=3, padx=10, pady=10)
+
+# Display for output (Pass 2 result)
+output_display = scrolledtext.ScrolledText(root, height=10, width=40)
+output_display.grid(row=2, column=0, columnspan=4, padx=10, pady=10)
+
+root.mainloop()
