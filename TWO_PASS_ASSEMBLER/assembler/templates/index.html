@@ -1,0 +1,49 @@
+<!-- templates/assembler/assembler_view.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Assembler - Single Page</title>
+  </head>
+  <body>
+    <h1>Assembler</h1>
+
+    <!-- File Upload Form -->
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <h2>Upload Files</h2>
+      {{ form.as_p }}
+      <button type="submit">Upload and Process</button>
+    </form>
+
+    <!-- Display Pass 1 Results -->
+    {% if pass1_result %}
+    <h2>Pass 1 Results</h2>
+    <h3>Intermediate File:</h3>
+    <pre>{{ pass1_result.intermediate }}</pre>
+
+    <h3>Symbol Table:</h3>
+    <pre>
+        {% for label, address in pass1_result.symtab.items %}
+            {{ label }}: {{ address }}
+        {% endfor %}
+        </pre
+    >
+    {% endif %}
+
+    <!-- Display Pass 2 Results -->
+    {% if pass2_result %}
+    <h2>Pass 2 Results</h2>
+    <h3>Machine Code Output:</h3>
+    <pre>{{ pass2_result.output_content }}</pre>
+    {% endif %}
+
+    <!-- Display File Info -->
+    <h2>Uploaded Files</h2>
+    <ul>
+      {% for file in UploadedFile.objects.all %}
+      <li>{{ file.file.name }}</li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>
