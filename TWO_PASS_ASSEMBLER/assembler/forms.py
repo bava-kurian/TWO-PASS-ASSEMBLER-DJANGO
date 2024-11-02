@@ -1,8 +1,8 @@
-# forms.py
+# assembler/forms.py
 from django import forms
-from .models import UploadedFile
+from .models import AssemblerFile
 
-class FileUploadForm(forms.ModelForm):
+class AssemblerFileUploadForm(forms.ModelForm):
     class Meta:
-        model = UploadedFile
-        fields = ['file', 'file_type']
+        model = AssemblerFile
+        fields = ['input_file', 'optab_file']

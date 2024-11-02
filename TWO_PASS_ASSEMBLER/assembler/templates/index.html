@@ -1,49 +1,89 @@
-<!-- templates/assembler/assembler_view.html -->
+<!-- assembler.html -->
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Assembler - Single Page</title>
-  </head>
-  <body>
-    <h1>Assembler</h1>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two Pass Assembler</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
 
-    <!-- File Upload Form -->
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      <h2>Upload Files</h2>
-      {{ form.as_p }}
-      <button type="submit">Upload and Process</button>
-    </form>
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-header text-center bg-primary text-white">
+            <h2>Two Pass Assembler</h2>
+        </div>
+        <div class="card-body">
+            <form action="" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- File Upload Section -->
+                <h5>Upload New Files</h5>
+                <div class="form-group">
+                    <label for="input_file">Input File:</label>
+                    <input type="file" name="input_file" class="form-control-file">
+                </div>
+                <div class="form-group">
+                    <label for="optab_file">Optab File:</label>
+                    <input type="file" name="optab_file" class="form-control-file">
+                </div>
 
-    <!-- Display Pass 1 Results -->
-    {% if pass1_result %}
-    <h2>Pass 1 Results</h2>
-    <h3>Intermediate File:</h3>
-    <pre>{{ pass1_result.intermediate }}</pre>
+                <!-- Reuse Previous Uploads Section -->
+                <h5 class="mt-4">Or Select Previous Upload</h5>
+                <div class="form-group">
+                    {% for file in previous_uploads %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="selected_file" value="{{ file.id }}" id="file_{{ file.id }}">
+                            <label class="form-check-label" for="file_{{ file.id }}">
+                                <strong>Input File:</strong> {{ file.input_file.name }}<br>
+                                <strong>Optab File:</strong> {{ file.optab_file.name }}<br>
+                                <em>Uploaded on {{ file.upload_date }}</em>
+                            </label>
+                        </div>
+                    {% empty %}
+                        <p>No previous uploads available.</p>
+                    {% endfor %}
+                </div>
 
-    <h3>Symbol Table:</h3>
-    <pre>
-        {% for label, address in pass1_result.symtab.items %}
-            {{ label }}: {{ address }}
-        {% endfor %}
-        </pre
-    >
+                <button type="submit" class="btn btn-success btn-block">Assemble</button>
+            </form>
+
+            <!-- Display error if any -->
+            {% if error %}
+                <div class="alert alert-danger mt-3">{{ error }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if intermediate_code or symtab or machine_code %}
+        <div class="card mt-4 shadow-sm">
+            <div class="card-body">
+                <h4 class="text-center text-primary">Results</h4>
+
+                <div class="mt-4">
+                    <h5>Intermediate Code</h5>
+                    <pre class="bg-light p-3">{{ intermediate_code }}</pre>
+                </div>
+
+                <div class="mt-4">
+                    <h5>Symbol Table (SYMTAB)</h5>
+                    <pre class="bg-light p-3">{{ symtab }}</pre>
+                </div>
+
+                <div class="mt-4">
+                    <h5>Machine Code</h5>
+                    <pre class="bg-light p-3">{{ machine_code }}</pre>
+                </div>
+            </div>
+        </div>
     {% endif %}
+</div>
 
-    <!-- Display Pass 2 Results -->
-    {% if pass2_result %}
-    <h2>Pass 2 Results</h2>
-    <h3>Machine Code Output:</h3>
-    <pre>{{ pass2_result.output_content }}</pre>
-    {% endif %}
-
-    <!-- Display File Info -->
-    <h2>Uploaded Files</h2>
-    <ul>
-      {% for file in UploadedFile.objects.all %}
-      <li>{{ file.file.name }}</li>
-      {% endfor %}
-    </ul>
-  </body>
+<!-- Bootstrap JS and dependencies -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
 </html>
