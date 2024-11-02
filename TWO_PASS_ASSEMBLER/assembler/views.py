@@ -35,7 +35,7 @@ def two_pass_assembler(request):
                 optab_file_path = assembler_file.optab_file.path
             else:
                 context['error'] = "Please upload both input and optab files or select a previous upload."
-                return render(request, 'assembler_app/assembler.html', context)
+                return render(request, 'index.html', context)
 
         # Process the assembler logic using the selected files
         try:
@@ -119,6 +119,6 @@ def two_pass_assembler(request):
 
         except Exception as e:
             context['error'] = f"An error occurred while processing the files: {str(e)}"
-            return render(request, 'assembler_app/assembler.html', context)
+            return render(request, 'index.html', context)
 
     return render(request, 'index.html', context)
